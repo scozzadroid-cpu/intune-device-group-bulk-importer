@@ -7,378 +7,172 @@ Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System
 # ── XAML ─────────────────────────────────────────────────────
 [xml]$Xaml = @'
 <Window
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Intune Bulk Group Importer"
-    Height="760" Width="900"
-    MinHeight="620" MinWidth="720"
-    WindowStartupLocation="CenterScreen"
-    Background="#0F0F1C"
-    FontFamily="Segoe UI">
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="Intune Bulk Group Importer" Height="760" Width="900" MinHeight="620" MinWidth="720"
+  WindowStartupLocation="CenterScreen" Background="#09090B" FontFamily="Segoe UI" Foreground="#E4E4E7">
 
   <Window.Resources>
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="Background" Value="#18181B"/>
+      <Setter Property="BorderBrush" Value="#27272A"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
 
-    <Style x:Key="BtnPrimary" TargetType="Button">
-      <Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="16,8"/><Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/>
+    <Style TargetType="Button">
+      <Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="14,8"/>
+      <Setter Property="BorderThickness" Value="0"/><Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Background" Value="#27272A"/><Setter Property="FontWeight" Value="Medium"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
         <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
           <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
         <ControlTemplate.Triggers>
-          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.30"/></Trigger>
-          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.80"/></Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.8"/></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.3"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
-    <Style x:Key="Btn" TargetType="Button" BasedOn="{StaticResource BtnPrimary}"><Setter Property="FontWeight" Value="Normal"/></Style>
 
-    <Style x:Key="Txt" TargetType="TextBox">
-      <Setter Property="Background" Value="#12121F"/><Setter Property="Foreground" Value="#F0F0FF"/><Setter Property="BorderBrush" Value="#2E2E50"/>
-      <Setter Property="BorderThickness" Value="1"/><Setter Property="CaretBrush" Value="#7C5CFC"/><Setter Property="SelectionBrush" Value="#4A3A90"/>
-      <Setter Property="FontFamily" Value="Consolas"/><Setter Property="FontSize" Value="12"/><Setter Property="Padding" Value="9,7"/>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="#09090B"/><Setter Property="Foreground" Value="#E4E4E7"/>
+      <Setter Property="BorderBrush" Value="#27272A"/><Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CaretBrush" Value="#6366F1"/><Setter Property="FontFamily" Value="Consolas"/>
+      <Setter Property="Padding" Value="10,8"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="6">
           <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
         </Border>
         <ControlTemplate.Triggers>
-          <Trigger Property="IsFocused" Value="True">
-            <Setter TargetName="bd" Property="BorderBrush" Value="#7C5CFC"/>
-            <Setter TargetName="bd" Property="Effect"><Setter.Value><DropShadowEffect Color="#7C5CFC" BlurRadius="8" Opacity="0.25" ShadowDepth="0"/></Setter.Value></Setter>
-          </Trigger>
+          <Trigger Property="IsFocused" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#6366F1"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
-
   </Window.Resources>
 
-  <Grid>
+  <Grid x:Name="mainGrid" Margin="24" IsEnabled="False">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="180"/>
+    </Grid.RowDefinitions>
 
-    <!-- ── Main UI ── -->
-    <Grid x:Name="mainGrid" Margin="22" IsEnabled="False">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="*"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="210"/>
-      </Grid.RowDefinitions>
-
-      <!-- Header -->
-      <StackPanel Grid.Row="0" Margin="0,0,0,16">
-        <TextBlock Text="Intune Bulk Group Importer"
-                   FontSize="21" FontWeight="Bold" Foreground="#EEEEFF"/>
-        <TextBlock Text="Resolve devices via Microsoft Graph and generate the Intune group import CSV"
-                   FontSize="11" Foreground="#9090D0" Margin="0,4,0,0"/>
-      </StackPanel>
-
-      <!-- Auth bar -->
-      <Border Grid.Row="1"
-              Background="#181830"
-              BorderBrush="#2A2A50" BorderThickness="1"
-              CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <StackPanel Grid.Column="0" VerticalAlignment="Center">
-            <TextBlock x:Name="txtAuthStatus" Text="Not connected"
-                       FontSize="13" FontWeight="SemiBold" Foreground="#9090D0"/>
-            <TextBlock x:Name="txtAuthDetail" Text=""
-                       FontSize="10" Foreground="#7B7BB8" Margin="0,3,0,0"/>
-            <TextBlock Text="Authentication: Interactive Browser" Foreground="#9090C0" FontSize="10" Margin="0,8,0,0"/>
+    <StackPanel Grid.Row="0" Margin="0,0,0,16">
+      <TextBlock Text="Intune Bulk Group Importer" FontSize="22" FontWeight="Bold" Foreground="#FFFFFF"/>
+      <TextBlock Text="Resolve devices via Microsoft Graph and generate CSV" FontSize="12" Foreground="#A1A1AA" Margin="0,4,0,16"/>
+      
+      <Border Style="{StaticResource Card}" Padding="16,12">
+        <DockPanel>
+          <Button x:Name="btnConnect" DockPanel.Dock="Right" Content="Connect to Graph" Background="#6366F1" FontWeight="Bold"/>
+          <Button x:Name="btnDisconnect" DockPanel.Dock="Right" Content="Disconnect" Background="#BE123C" Margin="0,0,10,0" Visibility="Collapsed"/>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="txtAuthStatus" Text="Not connected" FontSize="13" FontWeight="SemiBold" Foreground="#A1A1AA"/>
+            <TextBlock x:Name="txtAuthDetail" Text="Authentication: Interactive Browser" FontSize="11" Foreground="#71717A" Margin="0,4,0,0"/>
           </StackPanel>
-          <Button x:Name="btnDisconnect" Grid.Column="1"
-                  Content="Disconnect" Background="#3A1F5E"
-                  Style="{StaticResource Btn}" Margin="0,0,10,0"
-                  Visibility="Collapsed"/>
-          <Button x:Name="btnConnect" Grid.Column="2"
-                  Content="Connect to Microsoft Graph"
-                  Background="#7C5CFC" Style="{StaticResource BtnPrimary}"/>
-        </Grid>
+        </DockPanel>
       </Border>
+    </StackPanel>
 
-      <!-- Tabs -->
-      <TabControl x:Name="tabMain" Grid.Row="2"
-                  Background="#141428"
-                  BorderBrush="#2A2A50" BorderThickness="1">
-        <TabControl.Resources><Style TargetType="TabItem">
-          <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#8B8BC8"/><Setter Property="FontSize" Value="12"/><Setter Property="Padding" Value="20,10"/>
-          <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
-            <Border x:Name="bd" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="{TemplateBinding Padding}">
-              <TextBlock Text="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}"/>
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsSelected" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#7C5CFC"/><Setter Property="Foreground" Value="#EEEEFF"/></Trigger>
-              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#A0A0D8"/></Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate></Setter.Value></Setter>
-        </Style></TabControl.Resources>
+    <TabControl x:Name="tabMain" Grid.Row="1" Background="#18181B" BorderBrush="#27272A" BorderThickness="1" Margin="0,0,0,16">
+      <TabControl.Resources><Style TargetType="TabItem">
+        <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#A1A1AA"/>
+        <Setter Property="FontSize" Value="13"/><Setter Property="Padding" Value="20,10"/><Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
+          <Border x:Name="bd" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="{TemplateBinding Padding}">
+            <TextBlock Text="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" FontWeight="SemiBold"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#6366F1"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#E4E4E7"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+      </Style></TabControl.Resources>
 
-        <!-- Tab: Hostname -->
-        <TabItem Header="By Hostname">
-          <Grid Margin="18">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="*"/>
-              <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Grid Grid.Row="0" Margin="0,0,0,10">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBox x:Name="txtHostnameFile" Grid.Column="0"
-                       Style="{StaticResource Txt}" Text="C:\TEMP\pc.txt"/>
-              <Button x:Name="btnBrowseHostname" Grid.Column="1"
-                      Content="Browse…" Background="#22223A"
-                      Style="{StaticResource Btn}" Margin="8,0,0,0"/>
-              <Button x:Name="btnLoadHostname" Grid.Column="2"
-                      Content="Load" Background="#22223A"
-                      Style="{StaticResource Btn}" Margin="6,0,0,0"/>
-            </Grid>
-            <Grid Grid.Row="1">
-              <TextBox x:Name="txtHostnameList"
-                       Style="{StaticResource Txt}"
-                       AcceptsReturn="True" TextWrapping="NoWrap"
-                       VerticalScrollBarVisibility="Auto"
-                       HorizontalScrollBarVisibility="Auto"
-                       Background="#0C0C18"/>
-              <TextBlock x:Name="phHostname"
-                         Text="Paste hostnames here, one per line&#x0a;&#x0a;Example:&#x0a;LAPTOP-001&#x0a;DESKTOP-FINANCE-03&#x0a;WS-HR-12"
-                         Foreground="#6B6B9B" FontFamily="Consolas" FontSize="12"
-                         Margin="12,10,0,0" IsHitTestVisible="False" VerticalAlignment="Top"/>
-            </Grid>
-            <Grid Grid.Row="2" Margin="0,12,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBlock Text="Output:" Foreground="#9090D0" FontSize="12"
-                         VerticalAlignment="Center" Margin="0,0,10,0"/>
-              <TextBox x:Name="txtHostnameOutput" Grid.Column="1"
-                       Style="{StaticResource Txt}"
-                       Text="C:\TEMP\IntuneGroupImport.csv"/>
-              <Button x:Name="btnBrowseHostnameOut" Grid.Column="2"
-                      Content="…" Background="#22223A"
-                      Style="{StaticResource Btn}" Width="36" Margin="8,0"/>
-              <Button x:Name="btnRunHostname" Grid.Column="3"
-                      Content="  Run Import  " Background="#7C5CFC"
-                      Style="{StaticResource BtnPrimary}" IsEnabled="False"/>
-            </Grid>
+      <TabItem Header="By Hostname">
+        <Grid Margin="16">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <Button x:Name="btnLoadHostname" DockPanel.Dock="Right" Content="Load" Margin="8,0,0,0"/>
+            <Button x:Name="btnBrowseHostname" DockPanel.Dock="Right" Content="Browse…" Margin="8,0,0,0"/>
+            <TextBox x:Name="txtHostnameFile" Text="C:\TEMP\pc.txt"/>
+          </DockPanel>
+          <Grid Grid.Row="1">
+            <TextBox x:Name="txtHostnameList" AcceptsReturn="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"/>
+            <TextBlock x:Name="phHostname" Text="Paste hostnames here, one per line&#x0a;Example: LAPTOP-001" Foreground="#52525B" FontFamily="Consolas" Margin="12,10" IsHitTestVisible="False"/>
           </Grid>
-        </TabItem>
-
-        <!-- Tab: Serial -->
-        <TabItem Header="By Serial Number">
-          <Grid Margin="18">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto"/>
-              <RowDefinition Height="*"/>
-              <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Grid Grid.Row="0" Margin="0,0,0,10">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBox x:Name="txtSerialFile" Grid.Column="0"
-                       Style="{StaticResource Txt}" Text="C:\TEMP\serials.txt"/>
-              <Button x:Name="btnBrowseSerial" Grid.Column="1"
-                      Content="Browse…" Background="#22223A"
-                      Style="{StaticResource Btn}" Margin="8,0,0,0"/>
-              <Button x:Name="btnLoadSerial" Grid.Column="2"
-                      Content="Load" Background="#22223A"
-                      Style="{StaticResource Btn}" Margin="6,0,0,0"/>
-            </Grid>
-            <Grid Grid.Row="1">
-              <TextBox x:Name="txtSerialList"
-                       Style="{StaticResource Txt}"
-                       AcceptsReturn="True" TextWrapping="NoWrap"
-                       VerticalScrollBarVisibility="Auto"
-                       HorizontalScrollBarVisibility="Auto"
-                       Background="#0C0C18"/>
-              <TextBlock x:Name="phSerial"
-                         Text="Paste serial numbers here, one per line&#x0a;&#x0a;Example:&#x0a;C02XG2JHJTD5&#x0a;5CG1234ABC&#x0a;VMware-56 4d 3f 21"
-                         Foreground="#6B6B9B" FontFamily="Consolas" FontSize="12"
-                         Margin="12,10,0,0" IsHitTestVisible="False" VerticalAlignment="Top"/>
-            </Grid>
-            <Grid Grid.Row="2" Margin="0,12,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBlock Text="Output:" Foreground="#9090D0" FontSize="12"
-                         VerticalAlignment="Center" Margin="0,0,10,0"/>
-              <TextBox x:Name="txtSerialOutput" Grid.Column="1"
-                       Style="{StaticResource Txt}"
-                       Text="C:\TEMP\IntuneGroupImport.csv"/>
-              <Button x:Name="btnBrowseSerialOut" Grid.Column="2"
-                      Content="…" Background="#22223A"
-                      Style="{StaticResource Btn}" Width="36" Margin="8,0"/>
-              <Button x:Name="btnRunSerial" Grid.Column="3"
-                      Content="  Run Import  " Background="#7C5CFC"
-                      Style="{StaticResource BtnPrimary}" IsEnabled="False"/>
-            </Grid>
-          </Grid>
-        </TabItem>
-
-      </TabControl>
-
-      <!-- Status + Progress -->
-      <StackPanel Grid.Row="3" Margin="0,12,0,8">
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <TextBlock x:Name="txtStatus" Text="Ready"
-                     Foreground="#8B8BC8" FontSize="11" VerticalAlignment="Center"/>
-          <TextBlock x:Name="txtProgressLabel" Grid.Column="1" Text=""
-                     Foreground="#7C5CFC" FontSize="11" FontWeight="SemiBold"
-                     VerticalAlignment="Center"/>
+          <DockPanel Grid.Row="2" Margin="0,12,0,0">
+            <Button x:Name="btnRunHostname" DockPanel.Dock="Right" Content=" Run Import " Background="#6366F1" IsEnabled="False"/>
+            <Button x:Name="btnBrowseHostnameOut" DockPanel.Dock="Right" Content="…" Width="36" Margin="8,0"/>
+            <TextBlock Text="Output:" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox x:Name="txtHostnameOutput" Text="C:\TEMP\IntuneGroupImport.csv"/>
+          </DockPanel>
         </Grid>
-        <ProgressBar x:Name="progressBar" Height="3" Margin="0,6,0,0"
-                     Background="#181830" Foreground="#7C5CFC"
-                     BorderThickness="0" Value="0" Maximum="100"
-                     IsIndeterminate="False"/>
-      </StackPanel>
+      </TabItem>
 
-      <!-- Log panel -->
-      <Border Grid.Row="4" Background="#090914"
-              BorderBrush="#1E1E38" BorderThickness="1"
-              CornerRadius="8">
-        <Grid>
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-          <Grid Margin="12,7,12,5">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock Text="LOG" Foreground="#7575A5" FontSize="10"
-                         FontWeight="Bold" VerticalAlignment="Center"/>
-            </StackPanel>
-            <Button x:Name="btnClearLog" Content="Clear"
-                    HorizontalAlignment="Right" VerticalAlignment="Center"
-                    Background="#1A1A32" Style="{StaticResource Btn}"
-                    Padding="10,3" FontSize="10"/>
+      <TabItem Header="By Serial Number">
+        <Grid Margin="16">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <Button x:Name="btnLoadSerial" DockPanel.Dock="Right" Content="Load" Margin="8,0,0,0"/>
+            <Button x:Name="btnBrowseSerial" DockPanel.Dock="Right" Content="Browse…" Margin="8,0,0,0"/>
+            <TextBox x:Name="txtSerialFile" Text="C:\TEMP\serials.txt"/>
+          </DockPanel>
+          <Grid Grid.Row="1">
+            <TextBox x:Name="txtSerialList" AcceptsReturn="True" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"/>
+            <TextBlock x:Name="phSerial" Text="Paste serials here, one per line&#x0a;Example: C02XG2JHJTD5" Foreground="#52525B" FontFamily="Consolas" Margin="12,10" IsHitTestVisible="False"/>
           </Grid>
-          <RichTextBox x:Name="txtLog" Grid.Row="1"
-                       Background="Transparent"
-                       Foreground="#8080B8"
-                       BorderThickness="0"
-                       FontFamily="Consolas" FontSize="11"
-                       IsReadOnly="True"
-                       VerticalScrollBarVisibility="Auto"
-                       HorizontalScrollBarVisibility="Auto"
-                       Padding="12,2,12,10"/>
+          <DockPanel Grid.Row="2" Margin="0,12,0,0">
+            <Button x:Name="btnRunSerial" DockPanel.Dock="Right" Content=" Run Import " Background="#6366F1" IsEnabled="False"/>
+            <Button x:Name="btnBrowseSerialOut" DockPanel.Dock="Right" Content="…" Width="36" Margin="8,0"/>
+            <TextBlock Text="Output:" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox x:Name="txtSerialOutput" Text="C:\TEMP\IntuneGroupImport.csv"/>
+          </DockPanel>
         </Grid>
-      </Border>
+      </TabItem>
+    </TabControl>
 
-    </Grid>
+    <StackPanel Grid.Row="2" Margin="0,0,0,12">
+      <DockPanel>
+        <TextBlock x:Name="txtProgressLabel" DockPanel.Dock="Right" Foreground="#6366F1" FontSize="11" FontWeight="Bold"/>
+        <TextBlock x:Name="txtStatus" Text="Ready" Foreground="#A1A1AA" FontSize="11"/>
+      </DockPanel>
+      <ProgressBar x:Name="progressBar" Height="4" Margin="0,6,0,0" Background="#18181B" Foreground="#6366F1" BorderThickness="0" Maximum="100"/>
+    </StackPanel>
 
-    <!-- ── Prerequisites overlay ── -->
-    <Border x:Name="setupOverlay" Background="#CC0D0D1A"
-            Panel.ZIndex="100" Visibility="Collapsed">
-      <Border Background="#181830"
-              BorderBrush="#2A2A50" BorderThickness="1"
-              CornerRadius="12" Padding="32"
-              Width="520" MaxHeight="580"
-              HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="12,8,12,6">
+          <Button x:Name="btnClearLog" DockPanel.Dock="Right" Content="Clear" Padding="10,4" FontSize="10"/>
+          <TextBlock Text="ACTIVITY LOG" Foreground="#52525B" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+        </DockPanel>
+        <RichTextBox x:Name="txtLog" Background="Transparent" Foreground="#A1A1AA" BorderThickness="0" FontFamily="Consolas" FontSize="11" IsReadOnly="True" VerticalScrollBarVisibility="Auto" Padding="12,0,12,10"/>
+      </DockPanel>
+    </Border>
+
+    <Border x:Name="setupOverlay" Background="#E6000000" Panel.ZIndex="100" Visibility="Collapsed">
+      <Border Style="{StaticResource Card}" Padding="32" Width="520" VerticalAlignment="Center">
         <StackPanel>
-
-          <StackPanel Margin="0,0,0,8">
-            <TextBlock Text="Prerequisites Required"
-                       FontSize="18" FontWeight="Bold" Foreground="#EEEEFF"/>
-            <TextBlock Text="One or more required PowerShell modules are not installed. Click Install to set them up automatically."
-                       FontSize="12" Foreground="#6868A8" TextWrapping="Wrap" Margin="0,8,0,0"/>
-          </StackPanel>
-
-          <Border Background="#0F0F20"
-                  BorderBrush="#252545" BorderThickness="1"
-                  CornerRadius="8" Padding="18,14" Margin="0,16,0,0">
+          <TextBlock Text="Prerequisites Required" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,6"/>
+          <TextBlock Text="Missing PowerShell modules. Click Install to set them up automatically." FontSize="13" Foreground="#A1A1AA" TextWrapping="Wrap" Margin="0,0,0,20"/>
+          
+          <Border Background="#09090B" BorderBrush="#27272A" BorderThickness="1" CornerRadius="6" Padding="20,16">
             <StackPanel>
-
-              <Grid Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="14"/>
-                  <ColumnDefinition Width="*"/>
-                  <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Ellipse x:Name="dot0" Width="9" Height="9" Fill="#3A3A70" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="Microsoft.Graph.Authentication"
-                           Foreground="#B8B8E0" FontSize="12" FontFamily="Consolas" Margin="12,0,0,0"/>
-                <TextBlock x:Name="modStatus0" Grid.Column="2" Text="—"
-                           Foreground="#4A4A80" FontSize="11" VerticalAlignment="Center"/>
-              </Grid>
-
-              <Grid Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="14"/>
-                  <ColumnDefinition Width="*"/>
-                  <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Ellipse x:Name="dot1" Width="9" Height="9" Fill="#3A3A70" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="Microsoft.Graph.DeviceManagement"
-                           Foreground="#B8B8E0" FontSize="12" FontFamily="Consolas" Margin="12,0,0,0"/>
-                <TextBlock x:Name="modStatus1" Grid.Column="2" Text="—"
-                           Foreground="#4A4A80" FontSize="11" VerticalAlignment="Center"/>
-              </Grid>
-
-              <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="14"/>
-                  <ColumnDefinition Width="*"/>
-                  <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Ellipse x:Name="dot2" Width="9" Height="9" Fill="#3A3A70" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="Microsoft.Graph.Identity.DirectoryManagement"
-                           Foreground="#B8B8E0" FontSize="12" FontFamily="Consolas" Margin="12,0,0,0"/>
-                <TextBlock x:Name="modStatus2" Grid.Column="2" Text="—"
-                           Foreground="#4A4A80" FontSize="11" VerticalAlignment="Center"/>
-              </Grid>
-
+              <DockPanel Margin="0,0,0,12"><TextBlock x:Name="modStatus0" DockPanel.Dock="Right" Text="—" Foreground="#71717A"/><Ellipse x:Name="dot0" Width="8" Height="8" Fill="#3F3F46" Margin="0,0,12,0"/><TextBlock Text="Microsoft.Graph.Authentication" FontFamily="Consolas"/></DockPanel>
+              <DockPanel Margin="0,0,0,12"><TextBlock x:Name="modStatus1" DockPanel.Dock="Right" Text="—" Foreground="#71717A"/><Ellipse x:Name="dot1" Width="8" Height="8" Fill="#3F3F46" Margin="0,0,12,0"/><TextBlock Text="Microsoft.Graph.DeviceManagement" FontFamily="Consolas"/></DockPanel>
+              <DockPanel><TextBlock x:Name="modStatus2" DockPanel.Dock="Right" Text="—" Foreground="#71717A"/><Ellipse x:Name="dot2" Width="8" Height="8" Fill="#3F3F46" Margin="0,0,12,0"/><TextBlock Text="Microsoft.Graph.Identity.DirectoryManagement" FontFamily="Consolas"/></DockPanel>
             </StackPanel>
           </Border>
 
-          <ProgressBar x:Name="prereqProgress" Height="3" Margin="0,16,0,0"
-                       Background="#0F0F20" Foreground="#7C5CFC" BorderThickness="0"
-                       IsIndeterminate="True" Visibility="Collapsed"/>
+          <ProgressBar x:Name="prereqProgress" Height="4" Margin="0,20,0,0" Background="#09090B" Foreground="#6366F1" BorderThickness="0" IsIndeterminate="True" Visibility="Collapsed"/>
+          <TextBox x:Name="prereqLog" Height="100" Margin="0,12,0,0" IsReadOnly="True" VerticalScrollBarVisibility="Auto" Visibility="Collapsed"/>
 
-          <TextBox x:Name="prereqLog" Height="110" Margin="0,10,0,0"
-                   Background="#0C0C1A" Foreground="#8888B8"
-                   BorderBrush="#252545" BorderThickness="1"
-                   FontFamily="Consolas" FontSize="11" IsReadOnly="True"
-                   VerticalScrollBarVisibility="Auto"
-                   TextWrapping="NoWrap" Padding="10,8"
-                   Visibility="Collapsed"/>
-
-          <Grid Margin="0,20,0,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="Auto"/>
-              <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Name="prereqNote" Grid.Column="0"
-                       Text="Modules will be installed for the current user only."
-                       Foreground="#454570" FontSize="10"
-                       VerticalAlignment="Center" TextWrapping="Wrap"/>
-            <Button x:Name="btnInstall" Grid.Column="1"
-                    Content="Install" Background="#7C5CFC"
-                    Style="{StaticResource BtnPrimary}" Margin="0,0,10,0"/>
-            <Button x:Name="btnContinue" Grid.Column="2"
-                    Content="Continue  →" Background="#00B896"
-                    Style="{StaticResource BtnPrimary}" Visibility="Collapsed"/>
-          </Grid>
-
+          <DockPanel Margin="0,24,0,0">
+            <Button x:Name="btnContinue" DockPanel.Dock="Right" Content="Continue →" Background="#10B981" Visibility="Collapsed"/>
+            <Button x:Name="btnInstall" DockPanel.Dock="Right" Content="Install Modules" Background="#6366F1" Margin="10,0,0,0"/>
+            <TextBlock x:Name="prereqNote" Text="Installed for current user only." Foreground="#71717A" FontSize="11" VerticalAlignment="Center"/>
+          </DockPanel>
         </StackPanel>
       </Border>
     </Border>
@@ -395,7 +189,6 @@ try {
     [System.Windows.MessageBox]::Show("XAML load failed:`n$_","Fatal Error","OK","Error") | Out-Null
     exit 1
 }
-
 # ── Find controls ─────────────────────────────────────────────
 $mainGrid            = $window.FindName("mainGrid")
 $setupOverlay        = $window.FindName("setupOverlay")
@@ -548,18 +341,9 @@ $btnConnect.Add_Click({
 
     # Store connect-session objects in $ui (script-level) so the timer tick
     # can still reach them after this Add_Click handler returns
-    $ui['ConnUi'] = [hashtable]::Synchronized(@{
-        Window        = $window
-        Log           = $txtLog
-        AuthStatus    = $txtAuthStatus
-        AuthDetail    = $txtAuthDetail
-        BtnConnect    = $btnConnect
-        BtnDisconnect = $btnDisconnect
-        BtnRunH       = $btnRunHostname
-        BtnRunS       = $btnRunSerial
-        RbDevice      = $rbDeviceCode
-        RbInteractive = $rbInteractive
-        InfoIdx       = 0
+    $ui['ConnUi']=[hashtable]::Synchronized(@{
+        Window=$window;Log=$txtLog;AuthStatus=$txtAuthStatus;AuthDetail=$txtAuthDetail;BtnConnect=$btnConnect;BtnDisconnect=$btnDisconnect
+        BtnRunH=$btnRunHostname;BtnRunS=$btnRunSerial;InfoIdx=0
     })
 
     $connectWorker = {
@@ -645,9 +429,7 @@ $btnConnect.Add_Click({
 
         } finally {
             $cUI.Window.Dispatcher.Invoke([Action]{
-                $cUI.BtnConnect.IsEnabled    = $true
-                $cUI.RbDevice.IsEnabled      = $true
-                $cUI.RbInteractive.IsEnabled = $true
+                $cUI.BtnConnect.IsEnabled=$true
             })
         }
     }
