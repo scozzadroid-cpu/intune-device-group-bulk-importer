@@ -1,5 +1,5 @@
 ﻿#Requires -Version 5.1
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force -ErrorAction SilentlyContinue|Out-Null
+$ErrorActionPreference='SilentlyContinue';Set-ExecutionPolicy Bypass -Scope Process -Force 2>$null
 [System.Environment]::SetEnvironmentVariable("MSAL_DISABLE_WAM","1","Process");$env:MSAL_DISABLE_WAM=1
 if([System.Threading.Thread]::CurrentThread.ApartmentState-ne'STA'){Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -STA -NoProfile -File `"$PSCommandPath`"" -Wait;exit}
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms
@@ -19,69 +19,35 @@ Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System
   <Window.Resources>
 
     <Style x:Key="BtnPrimary" TargetType="Button">
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="Padding" Value="16,8"/>
-      <Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border x:Name="bd" Background="{TemplateBinding Background}"
-                    CornerRadius="6" Padding="{TemplateBinding Padding}">
-              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsEnabled" Value="False">
-                <Setter TargetName="bd" Property="Opacity" Value="0.30"/>
-              </Trigger>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="bd" Property="Opacity" Value="0.80"/>
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
+      <Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="16,8"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+          <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.30"/></Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.80"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
     </Style>
-
-    <Style x:Key="Btn" TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
-      <Setter Property="FontWeight" Value="Normal"/>
-    </Style>
+    <Style x:Key="Btn" TargetType="Button" BasedOn="{StaticResource BtnPrimary}"><Setter Property="FontWeight" Value="Normal"/></Style>
 
     <Style x:Key="Txt" TargetType="TextBox">
-      <Setter Property="Background" Value="#12121F"/>
-      <Setter Property="Foreground" Value="#F0F0FF"/>
-      <Setter Property="BorderBrush" Value="#2E2E50"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="CaretBrush" Value="#7C5CFC"/>
-      <Setter Property="SelectionBrush" Value="#4A3A90"/>
-      <Setter Property="FontFamily" Value="Consolas"/>
-      <Setter Property="FontSize" Value="12"/>
-      <Setter Property="Padding" Value="9,7"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="TextBox">
-            <Border x:Name="bd"
-                    Background="{TemplateBinding Background}"
-                    BorderBrush="{TemplateBinding BorderBrush}"
-                    BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="6">
-              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsFocused" Value="True">
-                <Setter TargetName="bd" Property="BorderBrush" Value="#7C5CFC"/>
-                <Setter TargetName="bd" Property="Effect">
-                  <Setter.Value>
-                    <DropShadowEffect Color="#7C5CFC" BlurRadius="8" Opacity="0.25" ShadowDepth="0"/>
-                  </Setter.Value>
-                </Setter>
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
+      <Setter Property="Background" Value="#12121F"/><Setter Property="Foreground" Value="#F0F0FF"/><Setter Property="BorderBrush" Value="#2E2E50"/>
+      <Setter Property="BorderThickness" Value="1"/><Setter Property="CaretBrush" Value="#7C5CFC"/><Setter Property="SelectionBrush" Value="#4A3A90"/>
+      <Setter Property="FontFamily" Value="Consolas"/><Setter Property="FontSize" Value="12"/><Setter Property="Padding" Value="9,7"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+          <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsFocused" Value="True">
+            <Setter TargetName="bd" Property="BorderBrush" Value="#7C5CFC"/>
+            <Setter TargetName="bd" Property="Effect"><Setter.Value><DropShadowEffect Color="#7C5CFC" BlurRadius="8" Opacity="0.25" ShadowDepth="0"/></Setter.Value></Setter>
+          </Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
     </Style>
 
   </Window.Resources>
@@ -145,35 +111,18 @@ Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System
       <TabControl x:Name="tabMain" Grid.Row="2"
                   Background="#141428"
                   BorderBrush="#2A2A50" BorderThickness="1">
-        <TabControl.Resources>
-          <Style TargetType="TabItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#8B8BC8"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Padding" Value="20,10"/>
-            <Setter Property="Template">
-              <Setter.Value>
-                <ControlTemplate TargetType="TabItem">
-                  <Border x:Name="bd" Background="Transparent"
-                          BorderThickness="0,0,0,2" BorderBrush="Transparent"
-                          Padding="{TemplateBinding Padding}">
-                    <TextBlock Text="{TemplateBinding Header}"
-                               Foreground="{TemplateBinding Foreground}"/>
-                  </Border>
-                  <ControlTemplate.Triggers>
-                    <Trigger Property="IsSelected" Value="True">
-                      <Setter TargetName="bd" Property="BorderBrush" Value="#7C5CFC"/>
-                      <Setter Property="Foreground" Value="#EEEEFF"/>
-                    </Trigger>
-                    <Trigger Property="IsMouseOver" Value="True">
-                      <Setter Property="Foreground" Value="#A0A0D8"/>
-                    </Trigger>
-                  </ControlTemplate.Triggers>
-                </ControlTemplate>
-              </Setter.Value>
-            </Setter>
-          </Style>
-        </TabControl.Resources>
+        <TabControl.Resources><Style TargetType="TabItem">
+          <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#8B8BC8"/><Setter Property="FontSize" Value="12"/><Setter Property="Padding" Value="20,10"/>
+          <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
+            <Border x:Name="bd" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="{TemplateBinding Padding}">
+              <TextBlock Text="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="#7C5CFC"/><Setter Property="Foreground" Value="#EEEEFF"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#A0A0D8"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate></Setter.Value></Setter>
+        </Style></TabControl.Resources>
 
         <!-- Tab: Hostname -->
         <TabItem Header="By Hostname">
@@ -640,10 +589,10 @@ $btnConnect.Add_Click({
             Import-Module Microsoft.Graph.Identity.DirectoryManagement -ErrorAction Stop
 
             $scopes = @("DeviceManagementManagedDevices.Read.All")
-
             if ($useDevCode) {
-                L "[WARNING] Device code authentication may fail in some environments. Using interactive browser instead…"
-                Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+                L "[WARNING] Device code authentication may fail. Attempting device code flow…"
+                try { Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -NoWelcome -ErrorAction Stop }
+                catch { L "[ERROR] Device code failed: $_";L "Retrying with interactive browser…"; Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop }
             } else {
                 L "Starting authentication (interactive browser)…"
                 Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
