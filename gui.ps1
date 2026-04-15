@@ -118,7 +118,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
         <TextBlock Text="Intune Bulk Group Importer"
                    FontSize="21" FontWeight="Bold" Foreground="#EEEEFF"/>
         <TextBlock Text="Resolve devices via Microsoft Graph and generate the Intune group import CSV"
-                   FontSize="11" Foreground="#6060A0" Margin="0,4,0,0"/>
+                   FontSize="11" Foreground="#9090D0" Margin="0,4,0,0"/>
       </StackPanel>
 
       <!-- Auth bar -->
@@ -134,14 +134,14 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
           </Grid.ColumnDefinitions>
           <StackPanel Grid.Column="0" VerticalAlignment="Center">
             <TextBlock x:Name="txtAuthStatus" Text="Not connected"
-                       FontSize="13" FontWeight="SemiBold" Foreground="#6060A0"/>
+                       FontSize="13" FontWeight="SemiBold" Foreground="#9090D0"/>
             <TextBlock x:Name="txtAuthDetail" Text=""
-                       FontSize="10" Foreground="#404080" Margin="0,3,0,0"/>
+                       FontSize="10" Foreground="#7B7BB8" Margin="0,3,0,0"/>
             <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
-              <RadioButton x:Name="rbDeviceCode" Content="Device code" IsChecked="True"
+              <RadioButton x:Name="rbDeviceCode" Content="Device code"
                            Foreground="#9090C0" FontSize="11" Margin="0,0,16,0"
                            GroupName="AuthMethod"/>
-              <RadioButton x:Name="rbInteractive" Content="Interactive (browser popup)"
+              <RadioButton x:Name="rbInteractive" Content="Interactive (browser popup)" IsChecked="True"
                            Foreground="#9090C0" FontSize="11"
                            GroupName="AuthMethod"/>
             </StackPanel>
@@ -222,7 +222,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
                        Background="#0C0C18"/>
               <TextBlock x:Name="phHostname"
                          Text="Paste hostnames here, one per line&#x0a;&#x0a;Example:&#x0a;LAPTOP-001&#x0a;DESKTOP-FINANCE-03&#x0a;WS-HR-12"
-                         Foreground="#252545" FontFamily="Consolas" FontSize="12"
+                         Foreground="#6B6B9B" FontFamily="Consolas" FontSize="12"
                          Margin="12,10,0,0" IsHitTestVisible="False" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="2" Margin="0,12,0,0">
@@ -232,7 +232,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <TextBlock Text="Output:" Foreground="#6060A0" FontSize="12"
+              <TextBlock Text="Output:" Foreground="#9090D0" FontSize="12"
                          VerticalAlignment="Center" Margin="0,0,10,0"/>
               <TextBox x:Name="txtHostnameOutput" Grid.Column="1"
                        Style="{StaticResource Txt}"
@@ -279,7 +279,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
                        Background="#0C0C18"/>
               <TextBlock x:Name="phSerial"
                          Text="Paste serial numbers here, one per line&#x0a;&#x0a;Example:&#x0a;C02XG2JHJTD5&#x0a;5CG1234ABC&#x0a;VMware-56 4d 3f 21"
-                         Foreground="#252545" FontFamily="Consolas" FontSize="12"
+                         Foreground="#6B6B9B" FontFamily="Consolas" FontSize="12"
                          Margin="12,10,0,0" IsHitTestVisible="False" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="2" Margin="0,12,0,0">
@@ -289,7 +289,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <TextBlock Text="Output:" Foreground="#6060A0" FontSize="12"
+              <TextBlock Text="Output:" Foreground="#9090D0" FontSize="12"
                          VerticalAlignment="Center" Margin="0,0,10,0"/>
               <TextBox x:Name="txtSerialOutput" Grid.Column="1"
                        Style="{StaticResource Txt}"
@@ -314,7 +314,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
           <TextBlock x:Name="txtStatus" Text="Ready"
-                     Foreground="#5858A0" FontSize="11" VerticalAlignment="Center"/>
+                     Foreground="#8B8BC8" FontSize="11" VerticalAlignment="Center"/>
           <TextBlock x:Name="txtProgressLabel" Grid.Column="1" Text=""
                      Foreground="#7C5CFC" FontSize="11" FontWeight="SemiBold"
                      VerticalAlignment="Center"/>
@@ -336,7 +336,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
           </Grid.RowDefinitions>
           <Grid Margin="12,7,12,5">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock Text="LOG" Foreground="#353565" FontSize="10"
+              <TextBlock Text="LOG" Foreground="#7575A5" FontSize="10"
                          FontWeight="Bold" VerticalAlignment="Center"/>
             </StackPanel>
             <Button x:Name="btnClearLog" Content="Clear"
@@ -719,20 +719,21 @@ $btnConnect.Add_Click({
         }
 
         try {
+            # Disable WAM in this runspace to avoid window handle errors
+            $env:MSAL_DISABLE_WAM = 1
+
             try { Disconnect-MgGraph -ErrorAction SilentlyContinue } catch {}
+
+            # Import all required modules
             Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+            Import-Module Microsoft.Graph.DeviceManagement -ErrorAction Stop
+            Import-Module Microsoft.Graph.Identity.DirectoryManagement -ErrorAction Stop
 
-            $scopes = @("DeviceManagementManagedDevices.Read.All", "Device.Read.All")
+            $scopes = @("DeviceManagementManagedDevices.Read.All")
 
-            if ($useDevCode) {
-                L "Starting authentication (device code flow)…"
-                $InformationPreference = 'Continue'
-                Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -NoWelcome -ErrorAction Stop 6>&1 |
-                    ForEach-Object { $s = "$_".Trim(); if ($s) { L $s } }
-            } else {
-                L "Starting authentication (interactive browser)…"
-                Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
-            }
+            # Always use interactive browser authentication (device code had bugs in v2.26.1)
+            L "Starting authentication (interactive browser)…"
+            Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
 
             $ctx = Get-MgContext
             if (!$ctx) { throw "Get-MgContext returned null after connect." }
