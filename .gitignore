@@ -1,0 +1,13 @@
+# Temporary files
+*.tmp
+*.log
+
+# Output files (contain Object IDs — do not commit)
+C:/TEMP/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Claude internal
+.claude/
