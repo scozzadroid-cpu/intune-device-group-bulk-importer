@@ -88,14 +88,7 @@ Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System
                        FontSize="13" FontWeight="SemiBold" Foreground="#9090D0"/>
             <TextBlock x:Name="txtAuthDetail" Text=""
                        FontSize="10" Foreground="#7B7BB8" Margin="0,3,0,0"/>
-            <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
-              <RadioButton x:Name="rbDeviceCode" Content="Device code"
-                           Foreground="#9090C0" FontSize="11" Margin="0,0,16,0"
-                           GroupName="AuthMethod"/>
-              <RadioButton x:Name="rbInteractive" Content="Interactive (browser popup)" IsChecked="True"
-                           Foreground="#9090C0" FontSize="11"
-                           GroupName="AuthMethod"/>
-            </StackPanel>
+            <TextBlock Text="Authentication: Interactive Browser" Foreground="#9090C0" FontSize="10" Margin="0,8,0,0"/>
           </StackPanel>
           <Button x:Name="btnDisconnect" Grid.Column="1"
                   Content="Disconnect" Background="#3A1F5E"
@@ -549,12 +542,9 @@ function Write-UILog([string]$Msg){$ts=Get-Date -F "HH:mm:ss";$c=if($Msg-match"\
 # For device code flow, Write-Host output (URL + code) is polled from
 # the Information stream every 400 ms and forwarded to the log panel.
 $btnConnect.Add_Click({
-    $btnConnect.IsEnabled    = $false
-    $rbDeviceCode.IsEnabled  = $false
-    $rbInteractive.IsEnabled = $false
-    $txtAuthStatus.Text      = "Connecting…"
-    $txtAuthStatus.Foreground = '#9090C0'
-    $useDeviceCode = [bool]$rbDeviceCode.IsChecked
+    $btnConnect.IsEnabled=$false
+    $txtAuthStatus.Text="Connecting…"
+    $txtAuthStatus.Foreground='#9090C0'
 
     # Store connect-session objects in $ui (script-level) so the timer tick
     # can still reach them after this Add_Click handler returns
@@ -573,7 +563,7 @@ $btnConnect.Add_Click({
     })
 
     $connectWorker = {
-        param($cUI, $useDevCode)
+        param($cUI)
 
         function L([string]$m){$t=Get-Date -F "HH:mm:ss";$c=if($m-match"\[ERROR\]"){"#FF6666"}elseif($m-match"\[WARNING\]|security|Security|SECURITY"){"#F4B860"}elseif($m-match"SUCCESS|\[OK\]|Authenticated|Connected"){"#00C896"}else{"#8080B8"};$cUI.Window.Dispatcher.Invoke([Action]{$p=New-Object System.Windows.Documents.Paragraph;$p.Margin=0;$tr=New-Object System.Windows.Documents.Run("[$t] ");$tr.Foreground="#7575A5";$p.Inlines.Add($tr);$mr=New-Object System.Windows.Documents.Run($m);$mr.Foreground=$c;$p.Inlines.Add($mr);$cUI.Log.Document.Blocks.Add($p);$cUI.Log.ScrollToEnd()})}
 
@@ -588,15 +578,9 @@ $btnConnect.Add_Click({
             Import-Module Microsoft.Graph.DeviceManagement -ErrorAction Stop
             Import-Module Microsoft.Graph.Identity.DirectoryManagement -ErrorAction Stop
 
-            $scopes = @("DeviceManagementManagedDevices.Read.All")
-            if ($useDevCode) {
-                L "[WARNING] Device code authentication may fail. Attempting device code flow…"
-                try { Connect-MgGraph -Scopes $scopes -UseDeviceAuthentication -NoWelcome -ErrorAction Stop }
-                catch { L "[ERROR] Device code failed: $_";L "Retrying with interactive browser…"; Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop }
-            } else {
-                L "Starting authentication (interactive browser)…"
-                Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
-            }
+            $scopes=@("DeviceManagementManagedDevices.Read.All")
+            L "Starting authentication (interactive browser)…"
+            Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
 
             $ctx = Get-MgContext
             if (!$ctx) { throw "Get-MgContext returned null after connect." }
@@ -671,11 +655,10 @@ $btnConnect.Add_Click({
     $ui['ConnRs'] = [runspacefactory]::CreateRunspace()
     $ui['ConnRs'].ApartmentState = "STA"; $ui['ConnRs'].ThreadOptions = "ReuseThread"; $ui['ConnRs'].Open()
     $ui['ConnPs'] = [powershell]::Create()
-    $ui['ConnPs'].Runspace = $ui['ConnRs']
+    $ui['ConnPs'].Runspace=$ui['ConnRs']
     [void]$ui['ConnPs'].AddScript($connectWorker)
     [void]$ui['ConnPs'].AddArgument($ui['ConnUi'])
-    [void]$ui['ConnPs'].AddArgument($useDeviceCode)
-    $ui['ConnHandle'] = $ui['ConnPs'].BeginInvoke()
+    $ui['ConnHandle']=$ui['ConnPs'].BeginInvoke()
 
     $ui['ConnTimer'] = New-Object System.Windows.Threading.DispatcherTimer
     $ui['ConnTimer'].Interval = [TimeSpan]::FromMilliseconds(400)
