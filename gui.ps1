@@ -66,7 +66,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 
     <Style x:Key="Txt" TargetType="TextBox">
       <Setter Property="Background" Value="#12121F"/>
-      <Setter Property="Foreground" Value="#E8E8F8"/>
+      <Setter Property="Foreground" Value="#F0F0FF"/>
       <Setter Property="BorderBrush" Value="#2E2E50"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="CaretBrush" Value="#7C5CFC"/>
@@ -163,7 +163,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
         <TabControl.Resources>
           <Style TargetType="TabItem">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#5858A0"/>
+            <Setter Property="Foreground" Value="#8B8BC8"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="Template">
