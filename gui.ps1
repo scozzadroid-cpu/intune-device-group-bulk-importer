@@ -1,23 +1,8 @@
 ﻿#Requires -Version 5.1
-# ============================================================
-#  Intune Device Group Bulk Importer — GUI
-#  WPF + Runspace async — UI never freezes during Graph calls
-# ============================================================
-
-# Bypass execution policy for this process
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force -ErrorAction SilentlyContinue
-
-# Disable WAM before any MSAL module loads (prevents window-handle error)
-[System.Environment]::SetEnvironmentVariable("MSAL_DISABLE_WAM", "1", "Process")
-$env:MSAL_DISABLE_WAM = "1"
-
-# STA check (WPF requires STA thread)
-if ([System.Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
-    Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -STA -NoProfile -File `"$PSCommandPath`"" -Wait
-    exit
-}
-
-Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Windows.Forms
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force -ErrorAction SilentlyContinue|Out-Null
+[System.Environment]::SetEnvironmentVariable("MSAL_DISABLE_WAM","1","Process");$env:MSAL_DISABLE_WAM=1
+if([System.Threading.Thread]::CurrentThread.ApartmentState-ne'STA'){Start-Process powershell.exe -ArgumentList "-ExecutionPolicy Bypass -STA -NoProfile -File `"$PSCommandPath`"" -Wait;exit}
+Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase,System.Windows.Forms
 
 # ── XAML ─────────────────────────────────────────────────────
 [xml]$Xaml = @'
@@ -344,15 +329,15 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
                     Background="#1A1A32" Style="{StaticResource Btn}"
                     Padding="10,3" FontSize="10"/>
           </Grid>
-          <TextBox x:Name="txtLog" Grid.Row="1"
-                   Background="Transparent"
-                   Foreground="#8080B8"
-                   BorderThickness="0"
-                   FontFamily="Consolas" FontSize="11"
-                   IsReadOnly="True" TextWrapping="NoWrap"
-                   VerticalScrollBarVisibility="Auto"
-                   HorizontalScrollBarVisibility="Auto"
-                   Padding="12,2,12,10"/>
+          <RichTextBox x:Name="txtLog" Grid.Row="1"
+                       Background="Transparent"
+                       Foreground="#8080B8"
+                       BorderThickness="0"
+                       FontFamily="Consolas" FontSize="11"
+                       IsReadOnly="True"
+                       VerticalScrollBarVisibility="Auto"
+                       HorizontalScrollBarVisibility="Auto"
+                       Padding="12,2,12,10"/>
         </Grid>
       </Border>
 
@@ -482,40 +467,8 @@ $modStatus2          = $window.FindName("modStatus2")
 $prereqProgress      = $window.FindName("prereqProgress")
 $prereqLog           = $window.FindName("prereqLog")
 $prereqNote          = $window.FindName("prereqNote")
-$btnInstall          = $window.FindName("btnInstall")
-$btnContinue         = $window.FindName("btnContinue")
-
-$txtAuthStatus       = $window.FindName("txtAuthStatus")
-$txtAuthDetail       = $window.FindName("txtAuthDetail")
-$btnConnect          = $window.FindName("btnConnect")
-$btnDisconnect       = $window.FindName("btnDisconnect")
-$rbDeviceCode        = $window.FindName("rbDeviceCode")
-$rbInteractive       = $window.FindName("rbInteractive")
-
-$txtHostnameFile     = $window.FindName("txtHostnameFile")
-$btnBrowseHostname   = $window.FindName("btnBrowseHostname")
-$btnLoadHostname     = $window.FindName("btnLoadHostname")
-$txtHostnameList     = $window.FindName("txtHostnameList")
-$txtHostnameOutput   = $window.FindName("txtHostnameOutput")
-$btnBrowseHostnameOut= $window.FindName("btnBrowseHostnameOut")
-$btnRunHostname      = $window.FindName("btnRunHostname")
-
-$phHostname          = $window.FindName("phHostname")
-$phSerial            = $window.FindName("phSerial")
-
-$txtSerialFile       = $window.FindName("txtSerialFile")
-$btnBrowseSerial     = $window.FindName("btnBrowseSerial")
-$btnLoadSerial       = $window.FindName("btnLoadSerial")
-$txtSerialList       = $window.FindName("txtSerialList")
-$txtSerialOutput     = $window.FindName("txtSerialOutput")
-$btnBrowseSerialOut  = $window.FindName("btnBrowseSerialOut")
-$btnRunSerial        = $window.FindName("btnRunSerial")
-
-$txtStatus           = $window.FindName("txtStatus")
-$txtProgressLabel    = $window.FindName("txtProgressLabel")
-$progressBar         = $window.FindName("progressBar")
-$txtLog              = $window.FindName("txtLog")
-$btnClearLog         = $window.FindName("btnClearLog")
+@('btnInstall','btnContinue','txtAuthStatus','txtAuthDetail','btnConnect','btnDisconnect','rbDeviceCode','rbInteractive','txtHostnameFile','btnBrowseHostname','btnLoadHostname','txtHostnameList','txtHostnameOutput','btnBrowseHostnameOut','btnRunHostname','phHostname','phSerial','txtSerialFile','btnBrowseSerial','btnLoadSerial','txtSerialList','txtSerialOutput','btnBrowseSerialOut','btnRunSerial','txtStatus','txtProgressLabel','progressBar','txtLog','btnClearLog')|%{Set-Variable $_ $window.FindName($_)}
+$modStatus0=$window.FindName("modStatus0");$modStatus1=$window.FindName("modStatus1");$modStatus2=$window.FindName("modStatus2");$prereqProgress=$window.FindName("prereqProgress");$prereqLog=$window.FindName("prereqLog");$prereqNote=$window.FindName("prereqNote");$setupOverlay=$window.FindName("setupOverlay");$mainGrid=$window.FindName("mainGrid");$dot0=$window.FindName("dot0");$dot1=$window.FindName("dot1");$dot2=$window.FindName("dot2")
 
 # ── Thread-safe shared state ──────────────────────────────────
 $ui = [hashtable]::Synchronized(@{
@@ -530,49 +483,18 @@ $ui = [hashtable]::Synchronized(@{
 })
 
 # ── Prerequisites helpers ─────────────────────────────────────
-$script:RequiredModules = @(
-    "Microsoft.Graph.Authentication",
-    "Microsoft.Graph.DeviceManagement",
-    "Microsoft.Graph.Identity.DirectoryManagement"
-)
-
-$script:DotControls    = @($dot0, $dot1, $dot2)
-$script:StatusControls = @($modStatus0, $modStatus1, $modStatus2)
-
-function Test-Prerequisites {
-    $allOk = $true
-    for ($i = 0; $i -lt $script:RequiredModules.Count; $i++) {
-        $ok    = [bool](Get-Module -ListAvailable -Name $script:RequiredModules[$i])
-        $color = if ($ok) { '#00C896' } else { '#FF4757' }
-        $script:DotControls[$i].Fill          = $color
-        $script:StatusControls[$i].Text       = if ($ok) { 'Installed' } else { 'Missing' }
-        $script:StatusControls[$i].Foreground = $color
-        if (!$ok) { $allOk = $false }
-    }
-    return $allOk
-}
-
-# ── Startup: check prerequisites ──────────────────────────────
-$window.Add_Loaded({
-    $allOk = Test-Prerequisites
-    if ($allOk) {
-        $mainGrid.IsEnabled = $true
-        Import-Module Microsoft.Graph.Authentication -ErrorAction SilentlyContinue
-    } else {
-        $setupOverlay.Visibility = 'Visible'
-    }
-})
+$script:RequiredModules=@("Microsoft.Graph.Authentication","Microsoft.Graph.DeviceManagement","Microsoft.Graph.Identity.DirectoryManagement")
+$script:DotControls=@($dot0,$dot1,$dot2);$script:StatusControls=@($modStatus0,$modStatus1,$modStatus2)
+function Test-Prerequisites{$allOk=$true;for($i=0;$i-lt$script:RequiredModules.Count;$i++){$ok=[bool](Get-Module -ListAvailable -Name $script:RequiredModules[$i]);$color=if($ok){'#00C896'}else{'#FF4757'};$script:DotControls[$i].Fill=$color;$script:StatusControls[$i].Text=if($ok){'Installed'}else{'Missing'};$script:StatusControls[$i].Foreground=$color;if(!$ok){$allOk=$false}};return $allOk}
+$window.Add_Loaded({$allOk=Test-Prerequisites;if($allOk){$mainGrid.IsEnabled=$true;Import-Module Microsoft.Graph.Authentication -ErrorAction SilentlyContinue}else{$setupOverlay.Visibility='Visible'}})
 
 # ── Install prerequisites worker ──────────────────────────────
 $prereqWorker = {
     param($uiSetup, $modules)
 
     function PLog([string]$m) {
-        $t = Get-Date -Format "HH:mm:ss"
-        $uiSetup.Window.Dispatcher.Invoke([Action]{
-            $uiSetup.Log.AppendText("[$t] $m`n")
-            $uiSetup.Log.ScrollToEnd()
-        })
+        $t=Get-Date -F "HH:mm:ss";$c=if($m-match"\[ERROR\]|failed"){"#FF6666"}elseif($m-match"Installed|OK"){"#00C896"}else{"#8080B8"}
+        $uiSetup.Window.Dispatcher.Invoke([Action]{$p=New-Object System.Windows.Documents.Paragraph;$p.Margin=0;$tr=New-Object System.Windows.Documents.Run("[$t] ");$tr.Foreground="#7575A5";$p.Inlines.Add($tr);$mr=New-Object System.Windows.Documents.Run($m);$mr.Foreground=$c;$p.Inlines.Add($mr);$uiSetup.Log.Document.Blocks.Add($p);$uiSetup.Log.ScrollToEnd()})
     }
 
     try {
@@ -671,13 +593,7 @@ $btnContinue.Add_Click({
 })
 
 # ── UI helpers (main thread) ──────────────────────────────────
-function Write-UILog([string]$Msg) {
-    $ts = Get-Date -Format "HH:mm:ss"
-    $ui.Window.Dispatcher.Invoke([Action]{
-        $ui.Log.AppendText("[$ts] $Msg`n")
-        $ui.Log.ScrollToEnd()
-    })
-}
+function Write-UILog([string]$Msg){$ts=Get-Date -F "HH:mm:ss";$c=if($Msg-match"\[ERROR\]"){"#FF6666"}elseif($Msg-match"\[WARNING\]|security|Security|SECURITY"){"#F4B860"}elseif($Msg-match"SUCCESS|\[OK\]|Authenticated|Connected"){"#00C896"}else{"#8080B8"};$ui.Window.Dispatcher.Invoke([Action]{$p=New-Object System.Windows.Documents.Paragraph;$p.Margin=0;$tr=New-Object System.Windows.Documents.Run("[$ts] ");$tr.Foreground="#7575A5";$p.Inlines.Add($tr);$mr=New-Object System.Windows.Documents.Run($Msg);$mr.Foreground=$c;$p.Inlines.Add($mr);$ui.Log.Document.Blocks.Add($p);$ui.Log.ScrollToEnd()})}
 
 # ── Auth ──────────────────────────────────────────────────────
 # Connect runs in a runspace so the UI thread is never blocked.
@@ -710,13 +626,7 @@ $btnConnect.Add_Click({
     $connectWorker = {
         param($cUI, $useDevCode)
 
-        function L([string]$m) {
-            $t = Get-Date -F "HH:mm:ss"
-            $cUI.Window.Dispatcher.Invoke([Action]{
-                $cUI.Log.AppendText("[$t] $m`n")
-                $cUI.Log.ScrollToEnd()
-            })
-        }
+        function L([string]$m){$t=Get-Date -F "HH:mm:ss";$c=if($m-match"\[ERROR\]"){"#FF6666"}elseif($m-match"\[WARNING\]|security|Security|SECURITY"){"#F4B860"}elseif($m-match"SUCCESS|\[OK\]|Authenticated|Connected"){"#00C896"}else{"#8080B8"};$cUI.Window.Dispatcher.Invoke([Action]{$p=New-Object System.Windows.Documents.Paragraph;$p.Margin=0;$tr=New-Object System.Windows.Documents.Run("[$t] ");$tr.Foreground="#7575A5";$p.Inlines.Add($tr);$mr=New-Object System.Windows.Documents.Run($m);$mr.Foreground=$c;$p.Inlines.Add($mr);$cUI.Log.Document.Blocks.Add($p);$cUI.Log.ScrollToEnd()})}
 
         try {
             # Disable WAM in this runspace to avoid window handle errors
@@ -731,9 +641,13 @@ $btnConnect.Add_Click({
 
             $scopes = @("DeviceManagementManagedDevices.Read.All")
 
-            # Always use interactive browser authentication (device code had bugs in v2.26.1)
-            L "Starting authentication (interactive browser)…"
-            Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+            if ($useDevCode) {
+                L "[WARNING] Device code authentication may fail in some environments. Using interactive browser instead…"
+                Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+            } else {
+                L "Starting authentication (interactive browser)…"
+                Connect-MgGraph -Scopes $scopes -NoWelcome -ErrorAction Stop
+            }
 
             $ctx = Get-MgContext
             if (!$ctx) { throw "Get-MgContext returned null after connect." }
@@ -836,60 +750,19 @@ $btnConnect.Add_Click({
     $ui['ConnTimer'].Start()
 })
 
-$btnDisconnect.Add_Click({
-    try { Disconnect-MgGraph -ErrorAction SilentlyContinue } catch {}
-    $txtAuthStatus.Text       = "Not connected"
-    $txtAuthStatus.Foreground = '#6060A0'
-    $txtAuthDetail.Text       = ""
-    $btnDisconnect.Visibility = 'Collapsed'
-    $btnConnect.Content       = 'Connect to Microsoft Graph'
-    $btnRunHostname.IsEnabled = $false
-    $btnRunSerial.IsEnabled   = $false
-    Write-UILog "Disconnected."
-})
+$btnDisconnect.Add_Click({try{Disconnect-MgGraph -ErrorAction SilentlyContinue}catch{};$txtAuthStatus.Text="Not connected";$txtAuthStatus.Foreground='#6060A0';$txtAuthDetail.Text="";$btnDisconnect.Visibility='Collapsed';$btnConnect.Content='Connect to Microsoft Graph';$btnRunHostname.IsEnabled=$false;$btnRunSerial.IsEnabled=$false;Write-UILog"Disconnected."})
 
-# ── Browse / Load ─────────────────────────────────────────────
-$btnBrowseHostname.Add_Click({
-    $d = New-Object System.Windows.Forms.OpenFileDialog
-    $d.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
-    if ($d.ShowDialog() -eq "OK") { $txtHostnameFile.Text = $d.FileName }
-})
-$btnLoadHostname.Add_Click({
-    $p = $txtHostnameFile.Text.Trim()
-    if (Test-Path $p) { $txtHostnameList.Text = (Get-Content $p -Raw); Write-UILog "Loaded: $p" }
-    else { [System.Windows.MessageBox]::Show("File not found: $p","Error","OK","Error") | Out-Null }
-})
-$btnBrowseHostnameOut.Add_Click({
-    $d = New-Object System.Windows.Forms.SaveFileDialog
-    $d.Filter = "CSV (*.csv)|*.csv"; $d.FileName = "IntuneGroupImport.csv"
-    if ($d.ShowDialog() -eq "OK") { $txtHostnameOutput.Text = $d.FileName }
-})
-$btnBrowseSerial.Add_Click({
-    $d = New-Object System.Windows.Forms.OpenFileDialog
-    $d.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
-    if ($d.ShowDialog() -eq "OK") { $txtSerialFile.Text = $d.FileName }
-})
-$btnLoadSerial.Add_Click({
-    $p = $txtSerialFile.Text.Trim()
-    if (Test-Path $p) { $txtSerialList.Text = (Get-Content $p -Raw); Write-UILog "Loaded: $p" }
-    else { [System.Windows.MessageBox]::Show("File not found: $p","Error","OK","Error") | Out-Null }
-})
-$btnBrowseSerialOut.Add_Click({
-    $d = New-Object System.Windows.Forms.SaveFileDialog
-    $d.Filter = "CSV (*.csv)|*.csv"; $d.FileName = "IntuneGroupImport.csv"
-    if ($d.ShowDialog() -eq "OK") { $txtSerialOutput.Text = $d.FileName }
-})
-$btnClearLog.Add_Click({ $txtLog.Clear() })
+$btnBrowseHostname.Add_Click({$d=New-Object System.Windows.Forms.OpenFileDialog;$d.Filter="Text files (*.txt)|*.txt|All files (*.*)|*.*";if($d.ShowDialog()-eq"OK"){$txtHostnameFile.Text=$d.FileName}})
+$btnLoadHostname.Add_Click({$p=$txtHostnameFile.Text.Trim();if(Test-Path $p){$txtHostnameList.Text=(Get-Content $p -Raw);Write-UILog"Loaded: $p"}else{[System.Windows.MessageBox]::Show("File not found: $p","Error","OK","Error")|Out-Null}})
+$btnBrowseHostnameOut.Add_Click({$d=New-Object System.Windows.Forms.SaveFileDialog;$d.Filter="CSV (*.csv)|*.csv";$d.FileName="IntuneGroupImport.csv";if($d.ShowDialog()-eq"OK"){$txtHostnameOutput.Text=$d.FileName}})
+$btnBrowseSerial.Add_Click({$d=New-Object System.Windows.Forms.OpenFileDialog;$d.Filter="Text files (*.txt)|*.txt|All files (*.*)|*.*";if($d.ShowDialog()-eq"OK"){$txtSerialFile.Text=$d.FileName}})
+$btnLoadSerial.Add_Click({$p=$txtSerialFile.Text.Trim();if(Test-Path $p){$txtSerialList.Text=(Get-Content $p -Raw);Write-UILog"Loaded: $p"}else{[System.Windows.MessageBox]::Show("File not found: $p","Error","OK","Error")|Out-Null}})
+$btnBrowseSerialOut.Add_Click({$d=New-Object System.Windows.Forms.SaveFileDialog;$d.Filter="CSV (*.csv)|*.csv";$d.FileName="IntuneGroupImport.csv";if($d.ShowDialog()-eq"OK"){$txtSerialOutput.Text=$d.FileName}})
+$btnClearLog.Add_Click({$txtLog.Clear()})
 
-# Hide placeholder when user types/pastes
-$txtHostnameList.Add_TextChanged({ $phHostname.Visibility = if ($txtHostnameList.Text -eq '') {'Visible'} else {'Collapsed'} })
-$txtSerialList.Add_TextChanged({   $phSerial.Visibility   = if ($txtSerialList.Text   -eq '') {'Visible'} else {'Collapsed'} })
-
-# ── Template header lines (hardcoded) ─────────────────────────
-$script:TemplateLines = @(
-    "Member object ID or user principal name [memberObjectIdOrUpn] Required",
-    "Example: 9832aad8-e4fe-496b-a604-95c6eF01ae75"
-)
+$txtHostnameList.Add_TextChanged({$phHostname.Visibility=if($txtHostnameList.Text-eq''){'Visible'}else{'Collapsed'}})
+$txtSerialList.Add_TextChanged({$phSerial.Visibility=if($txtSerialList.Text-eq''){'Visible'}else{'Collapsed'}})
+$script:TemplateLines=@("Member object ID or user principal name [memberObjectIdOrUpn] Required","Example: 9832aad8-e4fe-496b-a604-95c6eF01ae75")
 
 # ── Runspace launcher ─────────────────────────────────────────
 function Start-GraphRunspace {
@@ -921,7 +794,23 @@ $hostnameWorker = {
 
     function L([string]$m) {
         $t = Get-Date -F "HH:mm:ss"
-        $ui.Window.Dispatcher.Invoke([Action]{ $ui.Log.AppendText("[$t] $m`n"); $ui.Log.ScrollToEnd() })
+        $color = "#8080B8"
+        if ($m -match "\[ERROR\]|NOT FOUND") { $color = "#FF6666" }
+        elseif ($m -match "\[WARNING\]|SKIP") { $color = "#F4B860" }
+        elseif ($m -match "FOUND|SUCCESS") { $color = "#00C896" }
+
+        $ui.Window.Dispatcher.Invoke([Action]{
+            $para = New-Object System.Windows.Documents.Paragraph
+            $para.Margin = New-Object System.Windows.Thickness(0,0,0,0)
+            $tsRun = New-Object System.Windows.Documents.Run("[$t] ")
+            $tsRun.Foreground = "#7575A5"
+            $para.Inlines.Add($tsRun)
+            $msgRun = New-Object System.Windows.Documents.Run($m)
+            $msgRun.Foreground = $color
+            $para.Inlines.Add($msgRun)
+            $ui.Log.Document.Blocks.Add($para)
+            $ui.Log.ScrollToEnd()
+        })
     }
     function S([string]$m) { $ui.Window.Dispatcher.Invoke([Action]{ $ui.Status.Text = $m }) }
     function P([int]$c,[int]$n) {
@@ -1023,7 +912,23 @@ $serialWorker = {
 
     function L([string]$m) {
         $t = Get-Date -F "HH:mm:ss"
-        $ui.Window.Dispatcher.Invoke([Action]{ $ui.Log.AppendText("[$t] $m`n"); $ui.Log.ScrollToEnd() })
+        $color = "#8080B8"
+        if ($m -match "\[ERROR\]|NOT FOUND") { $color = "#FF6666" }
+        elseif ($m -match "\[WARNING\]|SKIP") { $color = "#F4B860" }
+        elseif ($m -match "FOUND|SUCCESS") { $color = "#00C896" }
+
+        $ui.Window.Dispatcher.Invoke([Action]{
+            $para = New-Object System.Windows.Documents.Paragraph
+            $para.Margin = New-Object System.Windows.Thickness(0,0,0,0)
+            $tsRun = New-Object System.Windows.Documents.Run("[$t] ")
+            $tsRun.Foreground = "#7575A5"
+            $para.Inlines.Add($tsRun)
+            $msgRun = New-Object System.Windows.Documents.Run($m)
+            $msgRun.Foreground = $color
+            $para.Inlines.Add($msgRun)
+            $ui.Log.Document.Blocks.Add($para)
+            $ui.Log.ScrollToEnd()
+        })
     }
     function S([string]$m) { $ui.Window.Dispatcher.Invoke([Action]{ $ui.Status.Text = $m }) }
     function P([int]$c,[int]$n) {
