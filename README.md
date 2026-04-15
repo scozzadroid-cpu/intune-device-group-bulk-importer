@@ -5,7 +5,7 @@ Each tool reads a list of devices, resolves their Object IDs, and produces a CSV
 
 ---
 
-## GUI — `Import-IntuneGroupGUI.exe` / `Import-IntuneGroupGUI.ps1`
+## GUI — `GUI.exe` / `GUI.ps1`
 
 A dark-themed WPF desktop application that wraps both workflows in a point-and-click interface.  
 All Graph calls run in a background runspace — the UI never freezes.
